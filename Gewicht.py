@@ -2,15 +2,27 @@
 # -*- coding: utf-8 -*-
 #########################################################
 import csv, time
-from PyQt5.QtCore import (QFile, QSize, Qt, QUrl)
+from PyQt5.QtCore import (QFile, QSize, Qt, QUrl, QDate)
 from PyQt5.QtGui import QIcon, QFont, QImage, QPixmap, QDesktopServices
-from PyQt5.QtWidgets import (QAction, QApplication, QMainWindow, QVBoxLayout, 
-        QTableWidget, QTableWidgetItem, QLabel, QWidget, QInputDialog)
+from PyQt5.QtWidgets import (QAction, QApplication, QMainWindow, QVBoxLayout, QCalendarWidget, 
+        QTableWidget, QTableWidgetItem, QLabel, QWidget, QInputDialog, QDateEdit)
 from qcharts import (AreaChart, DataTable)
 from os import path
 #########################################################
 mwidth = 900
 mheight = 700
+
+class PyDateEdit(QDateEdit):
+    def __init__(self, *args):
+        super(PyDateEdit, self).__init__(*args)
+        self.setDisplayFormat("dddd, dd.MMMM yyyy")
+        self.setDate(QDate.currentDate())
+        self.setCalendarPopup(True)
+        self.__cw = None
+        self.__firstDayOfWeek = Qt.Monday
+        self.__gridVisible = False
+        self.__horizontalHeaderFormat = QCalendarWidget.ShortDayNames
+        self.__navigationBarVisible = True
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -47,6 +59,19 @@ class MainWindow(QMainWindow):
         self.mainWidget.setLayout(self.vbox)
 
         self.setCentralWidget(self.mainWidget)
+        
+        self.start_date = ""
+        self.end_date = ""
+        
+        self.date_edit_start = PyDateEdit()
+        self.date_edit_start.setToolTip("Startdatum")
+        self.date_edit_start.setFixedWidth(200)
+        self.date_edit_start.dateChanged.connect(self.editStartDate)
+        
+        self.date_edit_end = PyDateEdit()
+        self.date_edit_end.setToolTip("Startdatum")
+        self.date_edit_end.setFixedWidth(200)
+        self.date_edit_end.dateChanged.connect(self.editEndDate)
 
         self.createToolBars()
         #self.createStatusBar()
@@ -60,10 +85,32 @@ class MainWindow(QMainWindow):
             print("file not exists")
             self.setHeaders()
             self.addRow("")
+            
+        sd = self.tableview.item(0, 3).text()
+        ed = self.tableview.item(self.tableview.rowCount()-1, 3).text()
+        print(sd, ed)
+        self.date_edit_start.setDate(QDate.fromString(sd, "yyyyMMdd"))
+        self.date_edit_end.setDate(QDate.fromString(ed, "yyyyMMdd"))
+        self.start_date = self.date_edit_start.date().toString("yyyyMMdd")
+        self.end_date = self.date_edit_end.date().toString("yyyyMMdd")
+            
+    def editStartDate(self):
+        ndate = self.date_edit_start.date().toString("dddd, dd.MMMM yyyy")
+        sqldate = self.date_edit_start.date().toString("yyyyMMdd")
+        print("Start Tag:", sqldate)
+        self.start_date = sqldate
+        self.updateChart()
+        
+    def editEndDate(self):
+        ndate = self.date_edit_end.date().toString("dddd, dd.MMMM yyyy")
+        sqldate = self.date_edit_end.date().toString("yyyyMMdd")
+        print("End Tag:", sqldate)
+        self.end_date = sqldate
+        self.updateChart()
 
     def makeChart(self):
         if self.tableview.rowCount() > 0:
-            self.showChart()
+            self.showChartUpdate()
 
     def isModified(self):
         self.isChanged = True
@@ -115,6 +162,9 @@ class MainWindow(QMainWindow):
         self.folderAct.setIconText("")
         self.tb.addAction(self.folderAct)
         
+        self.tb.addWidget(self.date_edit_start)
+        self.tb.addWidget(self.date_edit_end)
+        
     def openFolder(self):
         myfolder = path.dirname(sys.argv[0])
         QDesktopServices.openUrl(QUrl.fromLocalFile(myfolder))
@@ -146,7 +196,7 @@ class MainWindow(QMainWindow):
             self.tableview.resizeRowsToContents()
             last = self.tableview.rowCount() - 1
             self.tableview.selectRow(last)
-            self.makeChart()
+            self.showChart()
             self.isChanged = False
 
     def setTableAignment(self):
@@ -217,6 +267,62 @@ class MainWindow(QMainWindow):
                         rowdata.append('')
                 writer.writerow(rowdata)
         self.isChanged = False
+        
+    def updateChart(self):
+        rowlist = []
+        datelist = []
+        for row in range(self.tableview.rowCount()):
+            if int(self.tableview.item(row, 3).text()) >= int(self.start_date) \
+            and int(self.tableview.item(row, 3).text()) <= int(self.end_date):
+                rowlist.append(self.tableview.item(row, 1).text())
+                datelist.append(self.tableview.item(row, 3).text())
+        #print(rowlist)
+        start = datelist[0][6:]
+        print("start:", start)
+        self.showChartUpdate(rowlist, start)
+        
+    def showChartUpdate(self, rowlist, start):
+        first_item = int(start)
+        table = DataTable()
+        table.add_column('Tage')
+    
+        table.add_column('Gewicht')
+    
+        k = []
+
+        for row in rowlist:
+            item = row
+            if item is not None:
+                k.append(float(item))
+            else:
+                k.append(0)
+    
+        for x in range(len(k)):
+            table.add_row([ x+first_item, k[x]])
+    
+    
+
+        chart = AreaChart(table)
+        chart.backgound_color = "blue"
+        chart.set_horizontal_axis_column(0)
+        chart.haxis_title = 'Tage'
+        chart.vaxis_title = 'kg'
+        chart.haxis_vmin = first_item
+        chart.haxis_vmax = first_item + len(k) - 1
+        chart.haxis_step = 1
+    
+        chart.vaxis_vmin = 60 # min kg
+        chart.vaxis_vmax = 100 # max kg
+        chart.vaxis_step = 2
+
+        chartfile = 'gewicht.png'
+        chart.save(chartfile, QSize(890, 440), 100)
+
+        myimage = QImage(chartfile)
+        if myimage.isNull():
+            self.showMessage("Cannot load %s." % chartfile)
+            return
+        self.imageLabel.setPixmap(QPixmap.fromImage(myimage))
 
     def showChart(self):
         first_item = int(self.tableview.item(0, 0).text().partition(", ")[2].partition(".")[0])
