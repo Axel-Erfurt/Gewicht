@@ -219,6 +219,8 @@ class MainWindow(QMainWindow):
         self.isChanged = False
 
     def showChart(self):
+        first_item = int(self.tableview.item(0, 0).text().partition(", ")[2].partition(".")[0])
+        print(first_item)
         table = DataTable()
         table.add_column('Tage')
     
@@ -234,16 +236,17 @@ class MainWindow(QMainWindow):
                 k.append(0)
     
         for x in range(len(k)):
-            table.add_row([ x, k[x]])
+            table.add_row([ x+first_item, k[x]])
     
     
+
         chart = AreaChart(table)
         chart.backgound_color = "blue"
         chart.set_horizontal_axis_column(0)
         chart.haxis_title = 'Tage'
         chart.vaxis_title = 'kg'
-        chart.haxis_vmin = 0
-        chart.haxis_vmax = len(k) - 1
+        chart.haxis_vmin = first_item
+        chart.haxis_vmax = first_item + len(k) - 1
         chart.haxis_step = 1
     
         chart.vaxis_vmin = 60 # min kg
