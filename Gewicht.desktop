@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Gewicht
+Exec=sh -c  "cd ~/.local/share/Gewicht;python3 ~/.local/share/Gewicht/Gewicht.py"
+Icon=waage.png
+Type=Application
+Comment=Gewichtskontrolle
+GenericName=Gewicht
+Categories=Office
+Keywords=Gewicht
