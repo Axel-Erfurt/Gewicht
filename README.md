@@ -5,11 +5,11 @@ Gewichtskontrolle für Linux
 
 ### Installation
 
-Du benötigst dazu PyQt5
+- PyQt5 Installation
 
 ```sudo apt-get install python3-pyqt5```
 
-Installieren
+- Programm Installieren
 
 ```cd ~/Downloads && wget https://raw.githubusercontent.com/Axel-Erfurt/Gewicht/main/Installer.sh && chmod +x ./Installer.sh && ./Installer.sh```
 
