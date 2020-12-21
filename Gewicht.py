@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 #########################################################
 import csv, time
-from PyQt5.QtCore import (QFile, QSize, Qt, QUrl, QDate)
+from PyQt5.QtCore import (QFile, QSize, Qt, QUrl, QDate, pyqtSignal)
 from PyQt5.QtGui import QIcon, QFont, QImage, QPixmap, QDesktopServices
 from PyQt5.QtWidgets import (QAction, QApplication, QMainWindow, QVBoxLayout, QCalendarWidget, 
         QTableWidget, QTableWidgetItem, QLabel, QWidget, QInputDialog, QDateEdit)
@@ -75,9 +75,8 @@ class MainWindow(QMainWindow):
 
         self.createToolBars()
         #self.createStatusBar()
-        self.setFixedSize(mwidth, mheight)
-        self.move(0, 0)
-
+        self.setGeometry(0, 30, mwidth, mheight)
+        self.show()
         if QFile.exists(self.myfile):
             print("file exists")
             self.loadCsvOnOpen()
@@ -86,13 +85,15 @@ class MainWindow(QMainWindow):
             self.setHeaders()
             self.addRow("")
             
-        sd = self.tableview.item(0, 3).text()
-        ed = self.tableview.item(self.tableview.rowCount()-1, 3).text()
-        print(sd, ed)
-        self.date_edit_start.setDate(QDate.fromString(sd, "yyyyMMdd"))
-        self.date_edit_end.setDate(QDate.fromString(ed, "yyyyMMdd"))
-        self.start_date = self.date_edit_start.date().toString("yyyyMMdd")
-        self.end_date = self.date_edit_end.date().toString("yyyyMMdd")
+        if self.tableview.rowCount() > 0:
+            
+            sd = self.tableview.item(0, 3).text()
+            ed = self.tableview.item(self.tableview.rowCount()-1, 3).text()
+            #print(sd, ed)
+            self.date_edit_start.setDate(QDate.fromString(sd, "yyyyMMdd"))
+            self.date_edit_end.setDate(QDate.fromString(ed, "yyyyMMdd"))
+            self.start_date = self.date_edit_start.date().toString("yyyyMMdd")
+            self.end_date = self.date_edit_end.date().toString("yyyyMMdd")
             
     def editStartDate(self):
         ndate = self.date_edit_start.date().toString("dddd, dd.MMMM yyyy")
@@ -110,7 +111,7 @@ class MainWindow(QMainWindow):
 
     def makeChart(self):
         if self.tableview.rowCount() > 0:
-            self.showChartUpdate()
+            self.showChart()
 
     def isModified(self):
         self.isChanged = True
@@ -161,9 +162,15 @@ class MainWindow(QMainWindow):
                 triggered=self.openFolder)
         self.folderAct.setIconText("")
         self.tb.addAction(self.folderAct)
-        
+        self.tb.addSeparator()
         self.tb.addWidget(self.date_edit_start)
         self.tb.addWidget(self.date_edit_end)
+        self.tb.addSeparator()
+        self.updateAct = QAction(QIcon.fromTheme('view-refresh'), "", self,
+                toolTip="Diagramm erneuern",
+                triggered=self.updateChart)   
+        self.tb.addAction(self.updateAct)
+        
         
     def openFolder(self):
         myfolder = path.dirname(sys.argv[0])
@@ -276,7 +283,6 @@ class MainWindow(QMainWindow):
             and int(self.tableview.item(row, 3).text()) <= int(self.end_date):
                 rowlist.append(self.tableview.item(row, 1).text())
                 datelist.append(self.tableview.item(row, 3).text())
-        #print(rowlist)
         start = datelist[0][6:]
         print("start:", start)
         self.showChartUpdate(rowlist, start)
@@ -301,7 +307,6 @@ class MainWindow(QMainWindow):
             table.add_row([ x+first_item, k[x]])
     
     
-
         chart = AreaChart(table)
         chart.backgound_color = "blue"
         chart.set_horizontal_axis_column(0)
@@ -312,11 +317,11 @@ class MainWindow(QMainWindow):
         chart.haxis_step = 1
     
         chart.vaxis_vmin = 60 # min kg
-        chart.vaxis_vmax = 100 # max kg
-        chart.vaxis_step = 2
+        chart.vaxis_vmax = 150 # max kg
+        chart.vaxis_step = 10
 
         chartfile = 'gewicht.png'
-        chart.save(chartfile, QSize(890, 440), 100)
+        chart.save(chartfile, QSize(self.width() - 100, self.height() - 400), 100)
 
         myimage = QImage(chartfile)
         if myimage.isNull():
@@ -356,11 +361,11 @@ class MainWindow(QMainWindow):
         chart.haxis_step = 1
     
         chart.vaxis_vmin = 60 # min kg
-        chart.vaxis_vmax = 100 # max kg
-        chart.vaxis_step = 2
+        chart.vaxis_vmax = 150 # max kg
+        chart.vaxis_step = 10
 
         chartfile = 'gewicht.png'
-        chart.save(chartfile, QSize(890, 440), 100)
+        chart.save(chartfile, QSize(self.width() - 100, self.height() - 400), 100)
 
         myimage = QImage(chartfile)
         if myimage.isNull():
@@ -392,5 +397,4 @@ if __name__ == '__main__':
     import sys
     app = QApplication(sys.argv)
     mainWin = MainWindow()
-    mainWin.show()
     sys.exit(app.exec_())
