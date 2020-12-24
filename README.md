@@ -13,9 +13,13 @@ Gewichtskontrolle für Linux
 
 ```cd ~/Downloads && wget https://raw.githubusercontent.com/Axel-Erfurt/Gewicht/main/Installer.sh && chmod +x ./Installer.sh && ./Installer.sh```
 
-
-Gewicht2.py ist eine Version die gnuplot verwendet.
-
 Das Aussehen des Diagramms kann in der Datei preview.gnuplot angepasst werden.
+
+
+Gewicht2.py ist eine Version die gnuplot extern verwendet.
+
+Gewicht2_1.py ist eine Version die gnuplot intern verwendet.
+
+Das Aussehen des Diagramms dieser Versionen kann in der Datei preview2.gnuplot angepasst werden.
 
 siehe [Linetypes, colors, and styles](http://www.bersch.net/gnuplot-doc/linetypes,-colors,-and-styles.html)
