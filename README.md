@@ -1,7 +1,7 @@
 # Gewicht
 Gewichtskontrolle für Linux
 
-<img src="https://raw.githubusercontent.com/Axel-Erfurt/Gewicht/main/screenshot.png" width="500" />
+<img src="https://raw.githubusercontent.com/Axel-Erfurt/Gewicht/main/screenshot2.png" width="500" />
 
 ### Installation
 
