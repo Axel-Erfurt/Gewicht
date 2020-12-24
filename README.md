@@ -15,3 +15,7 @@ Gewichtskontrolle für Linux
 
 
 Gewicht2.py ist eine Version die gnuplot verwendet.
+
+Das Aussehen des Diagramms kann in der Datei preview.gnuplot angepasst werden.
+
+siehe [Linetypes, colors, and styles](http://www.bersch.net/gnuplot-doc/linetypes,-colors,-and-styles.html)
