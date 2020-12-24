@@ -75,27 +75,21 @@ class MainWindow(QMainWindow):
             self.addRow("")
             
         if self.tableview.rowCount() > 0:
-            
             sd = self.tableview.item(0, 3).text()
-            ed = self.tableview.item(self.tableview.rowCount()-1, 3).text()
-            #print(sd, ed)
             self.date_edit_start.setDate(QDate.fromString(sd, "yyyyMMdd"))
-            self.date_edit_end.setDate(QDate.fromString(ed, "yyyyMMdd"))
-            self.start_date = self.date_edit_start.date().toString("yyyyMMdd")
-            self.end_date = self.date_edit_end.date().toString("yyyyMMdd")
             
     def editStartDate(self):
-        ndate = self.date_edit_start.date().toString("dddd, dd.MMMM yyyy")
+        self.end_date = self.date_edit_end.date().toString("yyyyMMdd")
         sqldate = self.date_edit_start.date().toString("yyyyMMdd")
-        print("Start Tag:", sqldate)
         self.start_date = sqldate
+        print("Start Tag:", self.start_date, "End Tag:", self.end_date)
         self.updateTable()
         
     def editEndDate(self):
-        ndate = self.date_edit_end.date().toString("dddd, dd.MMMM yyyy")
+        self.start_date = self.date_edit_start.date().toString("yyyyMMdd")
         sqldate = self.date_edit_end.date().toString("yyyyMMdd")
-        print("End Tag:", sqldate)
         self.end_date = sqldate
+        print("Start Tag:", self.start_date, "End Tag:", self.end_date)
         self.updateTable()
 
     def isModified(self):
