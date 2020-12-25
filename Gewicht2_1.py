@@ -2,15 +2,13 @@
 # -*- coding: utf-8 -*-
 #########################################################
 import csv, time
-from PyQt5.QtCore import (QFile, QSize, Qt, QUrl, QDate)
-from PyQt5.QtGui import QIcon, QFont, QImage, QPixmap, QDesktopServices
+from PyQt5.QtCore import (QFile, QSize, Qt, QUrl, QDate, pyqtSignal)
+from PyQt5.QtGui import QIcon, QFont, QImage, QPixmap, QDesktopServices, QScreen
 from PyQt5.QtWidgets import (QAction, QApplication, QMainWindow, QVBoxLayout, QCalendarWidget, 
         QTableWidget, QTableWidgetItem, QLabel, QWidget, QInputDialog, QDateEdit)
 from os import path
-from subprocess import run
+from subprocess import Popen
 #########################################################
-mwidth = 900
-mheight = 700
 
 class PyDateEdit(QDateEdit):
     def __init__(self, *args):
@@ -18,11 +16,13 @@ class PyDateEdit(QDateEdit):
         self.setDisplayFormat("dddd, dd.MMMM yyyy")
         self.setDate(QDate.currentDate())
         self.setCalendarPopup(True)
+        self.setDisplayFormat("d.M.yy")
         self.__cw = None
         self.__firstDayOfWeek = Qt.Monday
         self.__gridVisible = False
         self.__horizontalHeaderFormat = QCalendarWidget.ShortDayNames
         self.__navigationBarVisible = True
+        self.setStyleSheet(stylesheet(self))
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -37,6 +37,9 @@ class MainWindow(QMainWindow):
         self.date = ""
         self.time = ""
         self.setWindowTitle("Gewicht")
+        
+        self.imgLabel = QLabel()
+        self.createStatusBar()
 
         self.tableview = QTableWidget()
         self.tableview.setColumnCount(3)
@@ -47,18 +50,7 @@ class MainWindow(QMainWindow):
         self.tableview.setSelectionBehavior(self.tableview.SelectRows)
         self.tableview.setSelectionMode(self.tableview.SingleSelection)
 
-        self.imageLabel = QLabel()
-
-        self.mainWidget = QWidget()
- 
-        self.vbox = QVBoxLayout()
-
-        self.vbox.addWidget(self.tableview)
-        self.vbox.addWidget(self.imageLabel)
-
-        self.mainWidget.setLayout(self.vbox)
-
-        self.setCentralWidget(self.mainWidget)
+        self.setCentralWidget(self.tableview)
         
         self.start_date = ""
         self.end_date = ""
@@ -74,8 +66,6 @@ class MainWindow(QMainWindow):
         self.date_edit_end.dateChanged.connect(self.editEndDate)
 
         self.createToolBars()
-        #self.createStatusBar()
-        self.setGeometry(0, 30, mwidth, mheight)
         self.show()
         if QFile.exists(self.myfile):
             print("file exists")
@@ -89,12 +79,10 @@ class MainWindow(QMainWindow):
             sd = self.tableview.item(0, 3).text()
             self.date_edit_start.setDate(QDate.fromString(sd, "yyyyMMdd"))
             
-            
     def editStartDate(self):
         self.end_date = self.date_edit_end.date().toString("yyyyMMdd")
         sqldate = self.date_edit_start.date().toString("yyyyMMdd")
         self.start_date = sqldate
-        print("Start Tag:", self.start_date, "End Tag:", self.end_date)
         self.updateTable()
         
     def editEndDate(self):
@@ -139,11 +127,11 @@ class MainWindow(QMainWindow):
         self.tb.setFloatable(False)
         self.tb.setIconSize(QSize(16, 16))
         self.btnAdd = QAction(QIcon.fromTheme('add'), "neuer Eintrag", self,
-                statusTip="neue Messung",
+                toolTip="neue Messung",
                 triggered=self.insertNewRow)
         self.tb.addAction(self.btnAdd)
         self.btnRemove = QAction(QIcon.fromTheme('edit-delete'), "Zeile löschen", self,
-                statusTip="Zeile löschen",
+                toolTip="Zeile löschen",
                 triggered=self.removeRow)
         self.tb.addAction(self.btnRemove)
         self.tb.addSeparator()
@@ -153,18 +141,21 @@ class MainWindow(QMainWindow):
                 triggered=self.openFolder)
         self.folderAct.setIconText("")
         self.tb.addAction(self.folderAct)
-        self.tb.addSeparator()
-        self.tb.addWidget(self.date_edit_start)
-        self.tb.addWidget(self.date_edit_end)
-        self.tb.addSeparator()
+        
+        self.addToolBarBreak(Qt.TopToolBarArea)      
+        self.tbd = self.addToolBar("Date")
+        self.tbd.setMovable(False)
+        self.tbd.setFloatable(False)
+        self.tbd.setIconSize(QSize(16, 16))  
+        self.tbd.addWidget(self.date_edit_start)
+        self.tbd.addWidget(self.date_edit_end)
+        self.tbd.addSeparator()
         self.updateAct = QAction(QIcon('gnuplot_icon'), "", self,
                 toolTip="Diagramm anzeigen",
                 triggered=self.callGnuplot)   
-        self.tb.addAction(self.updateAct)
+        self.tbd.addAction(self.updateAct)
         
     def callGnuplot(self):
-        print("calling gnuplot")
-        self.imageLabel.clear()
         if self.tableview.rowCount() > 0:
             liste = []
             for row in range(self.tableview.rowCount()):
@@ -176,20 +167,21 @@ class MainWindow(QMainWindow):
                     liste.append(f"{tag}\t{gew}")
                 else:
                     self.tableview.hideRow(row)
-            temp_file = 'zeitraum.csv'
-            gnuplot_file = 'preview2.gnuplot'
+            temp_file = f'{path.expanduser("~")}/.local/share/Gewicht/zeitraum.csv'
+            gnuplot_file = f'{path.expanduser("~")}/.local/share/Gewicht/preview3.gnuplot'
             with open(temp_file , 'w') as f:
                 f.write('\n'.join(liste))
                 f.close()
                 
             cmd = "gnuplot"
-            run([cmd, "-p", gnuplot_file])
+            Popen([cmd, "-p", gnuplot_file])
+            
             myimage = QImage("messung.png")
             if myimage.isNull():
                 self.showMessage("Cannot load %s." % myimage)
                 return
             else:
-                self.imageLabel.setPixmap(QPixmap.fromImage(myimage))
+                self.imgLabel.setPixmap(QPixmap.fromImage(myimage))
 
     def updateTable(self):
         for row in range(self.tableview.rowCount()):
@@ -198,15 +190,15 @@ class MainWindow(QMainWindow):
                 self.tableview.showRow(row)
             else:
                 self.tableview.hideRow(row)
-        if self.tableview.rowCount() > 0:
-            self.callGnuplot()
+        self.callGnuplot()
 
     def openFolder(self):
         myfolder = path.dirname(sys.argv[0])
         QDesktopServices.openUrl(QUrl.fromLocalFile(myfolder))
 
     def createStatusBar(self):
-        self.statusBar().showMessage("Willkommen", 0)
+        #self.statusBar().showMessage("Willkommen", 0)
+        self.statusBar().addPermanentWidget(self.imgLabel)
 
     def loadCsvOnOpen(self):
         filename = self.myfile
@@ -252,7 +244,8 @@ class MainWindow(QMainWindow):
             
     def insertNewRow(self):
         dlg = QInputDialog()
-        syst, ok = dlg.getDouble(self, 'neuer Eintrag', "Gewicht", 70.0)
+        last = self.tableview.item(self.tableview.rowCount() - 1, 1).text()
+        syst, ok = dlg.getDouble(self, 'neuer Eintrag', "Gewicht", float(last))
         if ok:
             self.addRow(str(syst))
 
@@ -260,9 +253,14 @@ class MainWindow(QMainWindow):
         row = self.tableview.rowCount()
         self.tableview.insertRow(row)
         self.tableview.horizontalHeader().setStretchLastSection(True)
+        lastdate = self.tableview.item(self.tableview.rowCount() - 2, 0).text()
         
         column = 0
-        newItem = QTableWidgetItem(time.strftime("%A, %d.%B %Y"))
+        print("lastdate: ", lastdate)
+        d = QDate.fromString(lastdate, "dddd, dd.MMMM yyyy")
+        dt = d.addDays(1)
+        sqldate = dt.toString("yyyyMMdd")
+        newItem = QTableWidgetItem(dt.toString("dddd, dd.MMMM yyyy"))
         newItem.setTextAlignment(Qt.AlignRight)
         self.tableview.setItem(row,column, newItem)
         
@@ -276,7 +274,7 @@ class MainWindow(QMainWindow):
         self.tableview.setItem(row,column, newItem)
         
         column = 3
-        newItem = QTableWidgetItem(time.strftime("%Y%m%d"))
+        newItem = QTableWidgetItem(sqldate)
         self.tableview.setItem(row,column, newItem)
         
         self.isChanged = True
@@ -314,12 +312,19 @@ def stylesheet(self):
         QToolBar
         {
             background: #e9e9e9;
-        } 
+        }
+        QDateEdit
+        {
+            font-size: 8pt;
+        }
     """
 
 if __name__ == '__main__':
 
     import sys
     app = QApplication(sys.argv)
+    geo = app.desktop().screenGeometry()
+    print(geo)
     mainWin = MainWindow()
+    mainWin.setGeometry(0, 0, 900, geo.height() - 60)
     sys.exit(app.exec_())
