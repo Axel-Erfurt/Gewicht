@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 #########################################################
 import csv, time
-from PyQt5.QtCore import (QFile, QSize, Qt, QUrl, QDate, pyqtSignal)
+from PyQt5.QtCore import (QFile, QSize, Qt, QUrl, QDate, pyqtSignal, QEvent)
 from PyQt5.QtGui import QIcon, QFont, QImage, QPixmap, QDesktopServices, QScreen
-from PyQt5.QtWidgets import (QAction, QApplication, QMainWindow, QVBoxLayout, QCalendarWidget, 
-        QTableWidget, QTableWidgetItem, QLabel, QWidget, QInputDialog, QDateEdit, QCheckBox)
+from PyQt5.QtWidgets import (QAction, QApplication, QMainWindow, QVBoxLayout, QCalendarWidget, QLineEdit, 
+        QTableWidget, QTableWidgetItem, QLabel, QWidget, QInputDialog, QDateEdit, QDateTimeEdit, QCheckBox)
 from os import path
 from subprocess import Popen
 #########################################################
@@ -15,14 +15,23 @@ class PyDateEdit(QDateEdit):
         super(PyDateEdit, self).__init__(*args)
         self.setDisplayFormat("dddd, dd.MMMM yyyy")
         self.setDate(QDate.currentDate())
-        self.setCalendarPopup(True)
+        self.setCalendarPopup(False)
         self.setDisplayFormat("d.M.yy")
-        self.__cw = None
-        self.__firstDayOfWeek = Qt.Monday
-        self.__gridVisible = False
-        self.__horizontalHeaderFormat = QCalendarWidget.ShortDayNames
-        self.__navigationBarVisible = True
         self.setStyleSheet(stylesheet(self))
+        self.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        if obj == self:
+            if QApplication.mouseButtons() == Qt.LeftButton:
+                self.setSelectedSection(QDateTimeEdit.DaySection)
+                return True
+            else:
+                return False
+        else:
+            return PyDateEdit.eventFilter(obj, event)
+            
+    def clearDate(self):
+        self.findChild(QLineEdit).setText('')
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -231,6 +240,7 @@ class MainWindow(QMainWindow):
                 self.tableview.showRow(row)
             else:
                 self.tableview.hideRow(row)
+        self.tableview.selectRow(0)
         self.callGnuplot()
 
     def openFolder(self):
