@@ -3,26 +3,32 @@
 #########################################################
 import csv, time
 from PyQt5.QtCore import (QFile, QSize, Qt, QUrl, QDate, pyqtSignal)
-from PyQt5.QtGui import QIcon, QFont, QImage, QPixmap, QDesktopServices
+from PyQt5.QtGui import QIcon, QFont, QImage, QPixmap, QDesktopServices, QScreen
 from PyQt5.QtWidgets import (QAction, QApplication, QMainWindow, QVBoxLayout, QCalendarWidget, 
-        QTableWidget, QTableWidgetItem, QLabel, QWidget, QInputDialog, QDateEdit)
-from qcharts import (AreaChart, DataTable)
+        QTableWidget, QTableWidgetItem, QLabel, QWidget, QInputDialog, QDateEdit, QDateTimeEdit)
 from os import path
+from subprocess import Popen
 #########################################################
-mwidth = 900
-mheight = 700
 
 class PyDateEdit(QDateEdit):
     def __init__(self, *args):
         super(PyDateEdit, self).__init__(*args)
         self.setDisplayFormat("dddd, dd.MMMM yyyy")
         self.setDate(QDate.currentDate())
-        self.setCalendarPopup(True)
-        self.__cw = None
-        self.__firstDayOfWeek = Qt.Monday
-        self.__gridVisible = False
-        self.__horizontalHeaderFormat = QCalendarWidget.ShortDayNames
-        self.__navigationBarVisible = True
+        self.setCalendarPopup(False)
+        self.setDisplayFormat("d.M.yy")
+        self.setStyleSheet(stylesheet(self))
+        self.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        if obj == self:
+            if QApplication.mouseButtons() == Qt.LeftButton:
+                self.setSelectedSection(QDateTimeEdit.DaySection)
+                return True
+            else:
+                return False
+        else:
+            return PyDateEdit.eventFilter(obj, event)
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -47,18 +53,7 @@ class MainWindow(QMainWindow):
         self.tableview.setSelectionBehavior(self.tableview.SelectRows)
         self.tableview.setSelectionMode(self.tableview.SingleSelection)
 
-        self.imageLabel = QLabel()
-
-        self.mainWidget = QWidget()
- 
-        self.vbox = QVBoxLayout()
-
-        self.vbox.addWidget(self.tableview)
-        self.vbox.addWidget(self.imageLabel)
-
-        self.mainWidget.setLayout(self.vbox)
-
-        self.setCentralWidget(self.mainWidget)
+        self.setCentralWidget(self.tableview)
         
         self.start_date = ""
         self.end_date = ""
@@ -74,8 +69,6 @@ class MainWindow(QMainWindow):
         self.date_edit_end.dateChanged.connect(self.editEndDate)
 
         self.createToolBars()
-        #self.createStatusBar()
-        self.setGeometry(0, 30, mwidth, mheight)
         self.show()
         if QFile.exists(self.myfile):
             print("file exists")
@@ -86,32 +79,22 @@ class MainWindow(QMainWindow):
             self.addRow("")
             
         if self.tableview.rowCount() > 0:
-            
             sd = self.tableview.item(0, 3).text()
-            ed = self.tableview.item(self.tableview.rowCount()-1, 3).text()
-            #print(sd, ed)
             self.date_edit_start.setDate(QDate.fromString(sd, "yyyyMMdd"))
-            self.date_edit_end.setDate(QDate.fromString(ed, "yyyyMMdd"))
-            self.start_date = self.date_edit_start.date().toString("yyyyMMdd")
-            self.end_date = self.date_edit_end.date().toString("yyyyMMdd")
             
     def editStartDate(self):
-        ndate = self.date_edit_start.date().toString("dddd, dd.MMMM yyyy")
+        self.end_date = self.date_edit_end.date().toString("yyyyMMdd")
         sqldate = self.date_edit_start.date().toString("yyyyMMdd")
-        print("Start Tag:", sqldate)
         self.start_date = sqldate
-        self.updateChart()
+        #print("Start Tag:", self.start_date, "End Tag:", self.end_date)
+        self.updateTable()
         
     def editEndDate(self):
-        ndate = self.date_edit_end.date().toString("dddd, dd.MMMM yyyy")
+        self.start_date = self.date_edit_start.date().toString("yyyyMMdd")
         sqldate = self.date_edit_end.date().toString("yyyyMMdd")
-        print("End Tag:", sqldate)
         self.end_date = sqldate
-        self.updateChart()
-
-    def makeChart(self):
-        if self.tableview.rowCount() > 0:
-            self.showChart()
+        print("Start Tag:", self.start_date, "End Tag:", self.end_date)
+        self.updateTable()
 
     def isModified(self):
         self.isChanged = True
@@ -162,16 +145,50 @@ class MainWindow(QMainWindow):
                 triggered=self.openFolder)
         self.folderAct.setIconText("")
         self.tb.addAction(self.folderAct)
-        self.tb.addSeparator()
-        self.tb.addWidget(self.date_edit_start)
-        self.tb.addWidget(self.date_edit_end)
-        self.tb.addSeparator()
-        self.updateAct = QAction(QIcon.fromTheme('view-refresh'), "", self,
-                toolTip="Diagramm erneuern",
-                triggered=self.updateChart)   
-        self.tb.addAction(self.updateAct)
         
+        self.addToolBarBreak(Qt.TopToolBarArea)      
+        self.tbd = self.addToolBar("Date")
+        self.tbd.setMovable(False)
+        self.tbd.setFloatable(False)
+        self.tbd.setIconSize(QSize(16, 16))  
+        self.tbd.addWidget(self.date_edit_start)
+        self.tbd.addWidget(self.date_edit_end)
+        self.tbd.addSeparator()
+        self.updateAct = QAction(QIcon('gnuplot_icon'), "", self,
+                toolTip="Diagramm anzeigen",
+                triggered=self.callGnuplot)   
+        self.tbd.addAction(self.updateAct)
         
+    def callGnuplot(self):
+        if self.tableview.rowCount() > 0:
+            liste = []
+            for row in range(self.tableview.rowCount()):
+                if int(self.tableview.item(row, 3).text()) >= int(self.start_date) \
+                and int(self.tableview.item(row, 3).text()) <= int(self.end_date):
+                    self.tableview.showRow(row)
+                    tag = self.tableview.item(row, 3).text()
+                    gew = self.tableview.item(row, 1).text()
+                    liste.append(f"{tag}\t{gew}")
+                else:
+                    self.tableview.hideRow(row)
+            temp_file = f'{path.expanduser("~")}/.local/share/Gewicht/zeitraum.csv'
+            gnuplot_file = f'{path.expanduser("~")}/.local/share/Gewicht/preview.gnuplot'
+            with open(temp_file , 'w') as f:
+                f.write('\n'.join(liste))
+                f.close()
+                
+            cmd = "gnuplot"
+            Popen([cmd, "-p", gnuplot_file])
+
+    def updateTable(self):
+        for row in range(self.tableview.rowCount()):
+            if int(self.tableview.item(row, 3).text()) >= int(self.start_date) \
+            and int(self.tableview.item(row, 3).text()) <= int(self.end_date):
+                self.tableview.showRow(row)
+            else:
+                self.tableview.hideRow(row)
+        self.tableview.selectRow(0)
+
     def openFolder(self):
         myfolder = path.dirname(sys.argv[0])
         QDesktopServices.openUrl(QUrl.fromLocalFile(myfolder))
@@ -182,7 +199,6 @@ class MainWindow(QMainWindow):
     def loadCsvOnOpen(self):
         filename = self.myfile
         if QFile.exists(filename):
-#            f = open(filename, 'r', encoding='utf-8')
             f = open(filename, 'r')
             self.tableview.setRowCount(0)
             self.tableview.setColumnCount(3)
@@ -203,7 +219,6 @@ class MainWindow(QMainWindow):
             self.tableview.resizeRowsToContents()
             last = self.tableview.rowCount() - 1
             self.tableview.selectRow(last)
-            self.showChart()
             self.isChanged = False
 
     def setTableAignment(self):
@@ -217,7 +232,6 @@ class MainWindow(QMainWindow):
         self.tableview.removeRow(row)
         self.isChanged = True
         self.tableview.selectRow(row)
-        self.makeChart()
 
     def selectedRow(self):
         if self.tableview.selectionModel().hasSelection():
@@ -226,18 +240,23 @@ class MainWindow(QMainWindow):
             
     def insertNewRow(self):
         dlg = QInputDialog()
-        syst, ok = dlg.getDouble(self, 'neuer Eintrag', "Gewicht", 70.0)
+        last = self.tableview.item(self.tableview.rowCount() - 1, 1).text()
+        syst, ok = dlg.getDouble(self, 'neuer Eintrag', "Gewicht", float(last))
         if ok:
             self.addRow(str(syst))
-            self.makeChart()
 
     def addRow(self, syst):
         row = self.tableview.rowCount()
         self.tableview.insertRow(row)
         self.tableview.horizontalHeader().setStretchLastSection(True)
+        lastdate = self.tableview.item(self.tableview.rowCount() - 2, 0).text()
         
         column = 0
-        newItem = QTableWidgetItem(time.strftime("%A, %d.%B %Y"))
+        print("lastdate: ", lastdate)
+        d = QDate.fromString(lastdate, "dddd, dd.MMMM yyyy")
+        dt = d.addDays(1)
+        sqldate = dt.toString("yyyyMMdd")
+        newItem = QTableWidgetItem(dt.toString("dddd, dd.MMMM yyyy"))
         newItem.setTextAlignment(Qt.AlignRight)
         self.tableview.setItem(row,column, newItem)
         
@@ -251,14 +270,12 @@ class MainWindow(QMainWindow):
         self.tableview.setItem(row,column, newItem)
         
         column = 3
-        newItem = QTableWidgetItem(time.strftime("%Y%m%d"))
+        newItem = QTableWidgetItem(sqldate)
         self.tableview.setItem(row,column, newItem)
         
         self.isChanged = True
         last = self.tableview.rowCount() - 1
         self.tableview.selectRow(last)
-        self.tableview.resizeRowsToContents()
-        self.makeChart()
 
     def writeCSV(self):
         with open(self.myfile, 'w') as stream:
@@ -274,104 +291,6 @@ class MainWindow(QMainWindow):
                         rowdata.append('')
                 writer.writerow(rowdata)
         self.isChanged = False
-        
-    def updateChart(self):
-        rowlist = []
-        datelist = []
-        for row in range(self.tableview.rowCount()):
-            if int(self.tableview.item(row, 3).text()) >= int(self.start_date) \
-            and int(self.tableview.item(row, 3).text()) <= int(self.end_date):
-                rowlist.append(self.tableview.item(row, 1).text())
-                datelist.append(self.tableview.item(row, 3).text())
-        start = datelist[0][6:]
-        print("start:", start)
-        self.showChartUpdate(rowlist, start)
-        
-    def showChartUpdate(self, rowlist, start):
-        first_item = int(start)
-        table = DataTable()
-        table.add_column('Tage')
-    
-        table.add_column('Gewicht')
-    
-        k = []
-
-        for row in rowlist:
-            item = row
-            if item is not None:
-                k.append(float(item))
-            else:
-                k.append(0)
-    
-        for x in range(len(k)):
-            table.add_row([ x+first_item, k[x]])
-    
-    
-        chart = AreaChart(table)
-        chart.backgound_color = "blue"
-        chart.set_horizontal_axis_column(0)
-        chart.haxis_title = 'Tage'
-        chart.vaxis_title = 'kg'
-        chart.haxis_vmin = first_item
-        chart.haxis_vmax = first_item + len(k) - 1
-        chart.haxis_step = 1
-    
-        chart.vaxis_vmin = 60 # min kg
-        chart.vaxis_vmax = 150 # max kg
-        chart.vaxis_step = 10
-
-        chartfile = 'gewicht.png'
-        chart.save(chartfile, QSize(self.width() - 100, self.height() - 400), 100)
-
-        myimage = QImage(chartfile)
-        if myimage.isNull():
-            self.showMessage("Cannot load %s." % chartfile)
-            return
-        self.imageLabel.setPixmap(QPixmap.fromImage(myimage))
-
-    def showChart(self):
-        first_item = int(self.tableview.item(0, 0).text().partition(", ")[2].partition(".")[0])
-        print(first_item)
-        table = DataTable()
-        table.add_column('Tage')
-    
-        table.add_column('Gewicht')
-    
-        k = []
-
-        for row in range(self.tableview.rowCount()):
-            item = self.tableview.item(row, 1)
-            if item is not None:
-                k.append(float(item.text()))
-            else:
-                k.append(0)
-    
-        for x in range(len(k)):
-            table.add_row([ x+first_item, k[x]])
-    
-    
-
-        chart = AreaChart(table)
-        chart.backgound_color = "blue"
-        chart.set_horizontal_axis_column(0)
-        chart.haxis_title = 'Tage'
-        chart.vaxis_title = 'kg'
-        chart.haxis_vmin = first_item
-        chart.haxis_vmax = first_item + len(k) - 1
-        chart.haxis_step = 1
-    
-        chart.vaxis_vmin = 60 # min kg
-        chart.vaxis_vmax = 150 # max kg
-        chart.vaxis_step = 10
-
-        chartfile = 'gewicht.png'
-        chart.save(chartfile, QSize(self.width() - 100, self.height() - 400), 100)
-
-        myimage = QImage(chartfile)
-        if myimage.isNull():
-            self.showMessage("Cannot load %s." % chartfile)
-            return
-        self.imageLabel.setPixmap(QPixmap.fromImage(myimage))
 
 def stylesheet(self):
         return """
@@ -389,12 +308,19 @@ def stylesheet(self):
         QToolBar
         {
             background: #e9e9e9;
-        } 
+        }
+        QDateEdit
+        {
+            font-size: 8pt;
+        }
     """
 
 if __name__ == '__main__':
 
     import sys
     app = QApplication(sys.argv)
+    geo = app.desktop().screenGeometry()
+    print(geo)
     mainWin = MainWindow()
+    mainWin.setGeometry(0, 0, 900, geo.height() - 60)
     sys.exit(app.exec_())
