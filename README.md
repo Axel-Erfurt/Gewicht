@@ -18,7 +18,7 @@ Das Aussehen des Diagramms kann in der Datei preview.gnuplot angepasst werden.
 
 Gewicht2.py ist eine Version die gnuplot extern verwendet.
 
-Gewicht2_1.py ist eine Version die gnuplot intern verwendet.
+Gewicht2_1.py ist eine Version die gnuplot intern oder extern verwendet.
 
 Das Aussehen des Diagramms dieser Versionen kann in der Datei preview2.gnuplot angepasst werden.
 
