@@ -3,14 +3,12 @@
 #########################################################
 import csv, time
 from PyQt5.QtCore import (QFile, QSize, Qt, QUrl, QDate, pyqtSignal)
-from PyQt5.QtGui import QIcon, QFont, QImage, QPixmap, QDesktopServices
+from PyQt5.QtGui import QIcon, QFont, QImage, QPixmap, QDesktopServices, QScreen
 from PyQt5.QtWidgets import (QAction, QApplication, QMainWindow, QVBoxLayout, QCalendarWidget, 
         QTableWidget, QTableWidgetItem, QLabel, QWidget, QInputDialog, QDateEdit)
 from os import path
 from subprocess import Popen
 #########################################################
-mwidth = 900
-mheight = 700
 
 class PyDateEdit(QDateEdit):
     def __init__(self, *args):
@@ -18,11 +16,13 @@ class PyDateEdit(QDateEdit):
         self.setDisplayFormat("dddd, dd.MMMM yyyy")
         self.setDate(QDate.currentDate())
         self.setCalendarPopup(True)
+        self.setDisplayFormat("d.M.yy")
         self.__cw = None
         self.__firstDayOfWeek = Qt.Monday
         self.__gridVisible = False
         self.__horizontalHeaderFormat = QCalendarWidget.ShortDayNames
         self.__navigationBarVisible = True
+        self.setStyleSheet(stylesheet(self))
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -63,8 +63,6 @@ class MainWindow(QMainWindow):
         self.date_edit_end.dateChanged.connect(self.editEndDate)
 
         self.createToolBars()
-        #self.createStatusBar()
-        self.setGeometry(0, 30, mwidth, mheight)
         self.show()
         if QFile.exists(self.myfile):
             print("file exists")
@@ -82,7 +80,7 @@ class MainWindow(QMainWindow):
         self.end_date = self.date_edit_end.date().toString("yyyyMMdd")
         sqldate = self.date_edit_start.date().toString("yyyyMMdd")
         self.start_date = sqldate
-        print("Start Tag:", self.start_date, "End Tag:", self.end_date)
+        #print("Start Tag:", self.start_date, "End Tag:", self.end_date)
         self.updateTable()
         
     def editEndDate(self):
@@ -141,14 +139,19 @@ class MainWindow(QMainWindow):
                 triggered=self.openFolder)
         self.folderAct.setIconText("")
         self.tb.addAction(self.folderAct)
-        self.tb.addSeparator()
-        self.tb.addWidget(self.date_edit_start)
-        self.tb.addWidget(self.date_edit_end)
-        self.tb.addSeparator()
+        
+        self.addToolBarBreak(Qt.TopToolBarArea)      
+        self.tbd = self.addToolBar("Date")
+        self.tbd.setMovable(False)
+        self.tbd.setFloatable(False)
+        self.tbd.setIconSize(QSize(16, 16))  
+        self.tbd.addWidget(self.date_edit_start)
+        self.tbd.addWidget(self.date_edit_end)
+        self.tbd.addSeparator()
         self.updateAct = QAction(QIcon('gnuplot_icon'), "", self,
                 toolTip="Diagramm anzeigen",
                 triggered=self.callGnuplot)   
-        self.tb.addAction(self.updateAct)
+        self.tbd.addAction(self.updateAct)
         
     def callGnuplot(self):
         if self.tableview.rowCount() > 0:
@@ -230,7 +233,8 @@ class MainWindow(QMainWindow):
             
     def insertNewRow(self):
         dlg = QInputDialog()
-        syst, ok = dlg.getDouble(self, 'neuer Eintrag', "Gewicht", 70.0)
+        last = self.tableview.item(self.tableview.rowCount() - 1, 1).text()
+        syst, ok = dlg.getDouble(self, 'neuer Eintrag', "Gewicht", float(last))
         if ok:
             self.addRow(str(syst))
 
@@ -238,9 +242,14 @@ class MainWindow(QMainWindow):
         row = self.tableview.rowCount()
         self.tableview.insertRow(row)
         self.tableview.horizontalHeader().setStretchLastSection(True)
+        lastdate = self.tableview.item(self.tableview.rowCount() - 2, 0).text()
         
         column = 0
-        newItem = QTableWidgetItem(time.strftime("%A, %d.%B %Y"))
+        print("lastdate: ", lastdate)
+        d = QDate.fromString(lastdate, "dddd, dd.MMMM yyyy")
+        dt = d.addDays(1)
+        sqldate = dt.toString("yyyyMMdd")
+        newItem = QTableWidgetItem(dt.toString("dddd, dd.MMMM yyyy"))
         newItem.setTextAlignment(Qt.AlignRight)
         self.tableview.setItem(row,column, newItem)
         
@@ -254,7 +263,7 @@ class MainWindow(QMainWindow):
         self.tableview.setItem(row,column, newItem)
         
         column = 3
-        newItem = QTableWidgetItem(time.strftime("%Y%m%d"))
+        newItem = QTableWidgetItem(sqldate)
         self.tableview.setItem(row,column, newItem)
         
         self.isChanged = True
@@ -292,12 +301,19 @@ def stylesheet(self):
         QToolBar
         {
             background: #e9e9e9;
-        } 
+        }
+        QDateEdit
+        {
+            font-size: 8pt;
+        }
     """
 
 if __name__ == '__main__':
 
     import sys
     app = QApplication(sys.argv)
+    geo = app.desktop().screenGeometry()
+    print(geo)
     mainWin = MainWindow()
+    mainWin.setGeometry(0, 0, 900, geo.height() - 60)
     sys.exit(app.exec_())
