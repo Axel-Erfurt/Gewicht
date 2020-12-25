@@ -5,7 +5,7 @@ import csv, time
 from PyQt5.QtCore import (QFile, QSize, Qt, QUrl, QDate, pyqtSignal)
 from PyQt5.QtGui import QIcon, QFont, QImage, QPixmap, QDesktopServices, QScreen
 from PyQt5.QtWidgets import (QAction, QApplication, QMainWindow, QVBoxLayout, QCalendarWidget, 
-        QTableWidget, QTableWidgetItem, QLabel, QWidget, QInputDialog, QDateEdit)
+        QTableWidget, QTableWidgetItem, QLabel, QWidget, QInputDialog, QDateEdit, QCheckBox)
 from os import path
 from subprocess import Popen
 #########################################################
@@ -40,6 +40,7 @@ class MainWindow(QMainWindow):
         
         self.imgLabel = QLabel()
         self.createStatusBar()
+        self.statusBar().hide()
 
         self.tableview = QTableWidget()
         self.tableview.setColumnCount(3)
@@ -78,6 +79,7 @@ class MainWindow(QMainWindow):
         if self.tableview.rowCount() > 0:
             sd = self.tableview.item(0, 3).text()
             self.date_edit_start.setDate(QDate.fromString(sd, "yyyyMMdd"))
+            
             
     def editStartDate(self):
         self.end_date = self.date_edit_end.date().toString("yyyyMMdd")
@@ -136,10 +138,10 @@ class MainWindow(QMainWindow):
         self.tb.addAction(self.btnRemove)
         self.tb.addSeparator()
         
-        self.folderAct = QAction(QIcon.fromTheme('folder'), "Programmordner öffnen", self,
+        self.folderAct = QAction(QIcon.fromTheme('folder'), "", self,
                 toolTip="Programmordner öffnen",
                 triggered=self.openFolder)
-        self.folderAct.setIconText("")
+        self.folderAct.setIconText("Programmordner öffnen")
         self.tb.addAction(self.folderAct)
         
         self.addToolBarBreak(Qt.TopToolBarArea)      
@@ -148,12 +150,30 @@ class MainWindow(QMainWindow):
         self.tbd.setFloatable(False)
         self.tbd.setIconSize(QSize(16, 16))  
         self.tbd.addWidget(self.date_edit_start)
+        self.tbd.addSeparator()
         self.tbd.addWidget(self.date_edit_end)
         self.tbd.addSeparator()
-        self.updateAct = QAction(QIcon('gnuplot_icon'), "", self,
-                toolTip="Diagramm anzeigen",
-                triggered=self.callGnuplot)   
-        self.tbd.addAction(self.updateAct)
+        self.extern = QAction(QIcon("gnuplot_icon"), "Diagramm extern", self, 
+                                toolTip="externes Diagramm öffnen", 
+                                triggered = self.callGnuplot2)
+        self.tbd.addAction(self.extern)
+        self.btnChart = QAction(QIcon.fromTheme("view-restore"), "Diagramm anzeigen", self, 
+                                toolTip="internes Diagramm anzeigen/ausblenden", 
+                                triggered = self.toggleChart)
+        self.btnChart.setIconText("Diagramm anzeigen")
+        self.tbd.addAction(self.btnChart)  
+  
+    def toggleChart(self):
+        if self.btnChart.text() == "Diagramm anzeigen":
+            self.statusBar().show()
+            self.imgLabel.show()
+            self.callGnuplot()
+            self.btnChart.setText("Diagramm ausblenden")
+        else:
+            self.imgLabel.hide()
+            self.btnChart.setText("Diagramm anzeigen")
+            self.statusBar().hide()
+
         
     def callGnuplot(self):
         if self.tableview.rowCount() > 0:
@@ -174,14 +194,35 @@ class MainWindow(QMainWindow):
                 f.close()
                 
             cmd = "gnuplot"
-            Popen([cmd, "-p", gnuplot_file])
+            Popen([cmd, gnuplot_file])
             
-            myimage = QImage("messung.png")
+            myimage = QImage("messung_intern.png")
             if myimage.isNull():
                 self.showMessage("Cannot load %s." % myimage)
                 return
             else:
                 self.imgLabel.setPixmap(QPixmap.fromImage(myimage))
+                
+    def callGnuplot2(self): # extern
+        if self.tableview.rowCount() > 0:
+            liste = []
+            for row in range(self.tableview.rowCount()):
+                if int(self.tableview.item(row, 3).text()) >= int(self.start_date) \
+                and int(self.tableview.item(row, 3).text()) <= int(self.end_date):
+                    self.tableview.showRow(row)
+                    tag = self.tableview.item(row, 3).text()
+                    gew = self.tableview.item(row, 1).text()
+                    liste.append(f"{tag}\t{gew}")
+                else:
+                    self.tableview.hideRow(row)
+            temp_file = f'{path.expanduser("~")}/.local/share/Gewicht/zeitraum.csv'
+            gnuplot_file = f'{path.expanduser("~")}/.local/share/Gewicht/preview.gnuplot'
+            with open(temp_file , 'w') as f:
+                f.write('\n'.join(liste))
+                f.close()
+                
+            cmd = "gnuplot"
+            Popen([cmd, "-p", gnuplot_file])
 
     def updateTable(self):
         for row in range(self.tableview.rowCount()):
@@ -198,7 +239,7 @@ class MainWindow(QMainWindow):
 
     def createStatusBar(self):
         #self.statusBar().showMessage("Willkommen", 0)
-        self.statusBar().addPermanentWidget(self.imgLabel)
+        self.statusBar().addWidget(self.imgLabel)
 
     def loadCsvOnOpen(self):
         filename = self.myfile
