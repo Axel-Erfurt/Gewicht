@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #########################################################
-import csv, time
-from PyQt5.QtCore import (QFile, QSize, Qt, QUrl, QDate, pyqtSignal)
-from PyQt5.QtGui import QIcon, QFont, QImage, QPixmap, QDesktopServices, QScreen
-from PyQt5.QtWidgets import (QAction, QApplication, QMainWindow, QVBoxLayout, QCalendarWidget, 
-        QTableWidget, QTableWidgetItem, QLabel, QWidget, QInputDialog, QDateEdit, QDateTimeEdit)
+import csv
+from PyQt5.QtCore import (QFile, QSize, Qt, QUrl, QDate)
+from PyQt5.QtGui import QIcon, QFont, QDesktopServices
+from PyQt5.QtWidgets import (QAction, QApplication, QMainWindow, 
+        QTableWidget, QTableWidgetItem, QInputDialog, QDateEdit, QDateTimeEdit)
 from os import path
 from subprocess import Popen
 #########################################################
@@ -16,7 +16,7 @@ class PyDateEdit(QDateEdit):
         self.setDisplayFormat("dddd, dd.MMMM yyyy")
         self.setDate(QDate.currentDate())
         self.setCalendarPopup(False)
-        self.setDisplayFormat("d.M.yy")
+        self.setDisplayFormat("dd.MM.yy")
         self.setStyleSheet(stylesheet(self))
         self.installEventFilter(self)
 
