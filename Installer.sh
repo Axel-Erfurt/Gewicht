@@ -1,4 +1,5 @@
 #!/bin/sh
+[ -e ~/Downloads/Installer.sh ] && rm ~/Downloads/Installer.sh
 echo "Ordner erstellen falls nicht vorhanden"
 mkdir -p ~/.local/share/Gewicht
 echo "temporäres Backup anlegen"
