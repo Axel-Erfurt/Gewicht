@@ -47,13 +47,19 @@ CSV importieren
 
 - Export
 
-CSV exportieren mit dem aktuellen Inhalt der Tabelle
+CSV exportieren mit dem aktuellen Inhalt der Tabelle (des eingestellten Zeitraums)
 
 #### Toolbar 2
 
 - Datumswähler
 
-zum Ändern des Zeitraums der angezeigt werden soll.
+zum Ändern des Zeitraums.
+
+**_Feld 1_** -> Start des Zeitraums der angezeigt werden soll.
+
+**_Feld 2_** -> Ende des Zeitraums der angezeigt werden soll.
+
+Das Ende sollte **_nach_** dem Start liegen!
 
 In das Feld klicken und Ziffern eingeben
 
