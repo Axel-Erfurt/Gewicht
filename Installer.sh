@@ -10,4 +10,4 @@ echo "kopiere Icon nach .icons"
 cp ~/.local/share/Gewicht/waage.png ~/.icons
 echo "kopiere Starter nach ~/.local/share/applications"
 cp ~/.local/share/Gewicht/Gewicht.desktop ~/.local/share/applications
-
+rm ./main.zip
