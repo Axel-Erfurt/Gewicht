@@ -1,10 +1,10 @@
 #!/bin/sh
-echo "Backup anlegen"
-[ -e ~/.local/share/Gewicht/Gewicht.csv ] && cp ~/.local/share/Gewicht/Gewicht.csv ~/Gewicht.csv_Backup
-echo "alte csv und preview kopieren"
-[ -e ~/.local/share/Gewicht/Gewicht.csv ] && cp ~/.local/share/Gewicht/Gewicht.csv /tmp/Gewicht.csv
-[-e ~/.local/share/Gewicht/preview_extern.gnuplot] && cp ~/.local/share/Gewicht/preview_extern.gnuplot /tmp/preview_extern.gnuplot
-[-e ~/.local/share/Gewicht/preview_intern.gnuplot] && cp ~/.local/share/Gewicht/preview_intern.gnuplot /tmp/Gewicht_preview_intern.gnuplot
+echo "temporäres Backup anlegen"
+[ -e /tmp/backupG ] && rm -rf /tmp/backupG
+mkdir /tmp/backupG
+cp ~/.local/share/Gewicht/*.gnuplot /tmp/backupG
+cp ~/.local/share/Gewicht/*.csv /tmp/backupG
+cp ~/.local/share/Gewicht/*.png /tmp/backupG
 echo "altes Programm löschen"
 [ -e ~/.local/share/Gewicht ] && rm -rf ~/.local/share/Gewicht
 cd ~/Downloads
@@ -20,10 +20,10 @@ echo "kopiere Icon nach .icons"
 cp ~/.local/share/Gewicht/waage.png ~/.icons
 echo "kopiere Starter nach ~/.local/share/applications"
 cp ~/.local/share/Gewicht/Gewicht.desktop ~/.local/share/applications
-echo "alte csv und preview zurückkopieren"
-[ -e /tmp/Gewicht.csv ] && mv /tmp/Gewicht.csv ~/.local/share/Gewicht/Gewicht.csv 
-[ -e /tmp/preview_extern.gnuplot ] && mv /tmp/preview_extern.gnuplot ~/.local/share/Gewicht/preview_extern.gnuplot
-[ -e /tmp/preview_extern.gnuplot ] && mv /tmp/Gewicht_preview_intern.gnuplot ~/.local/share/Gewicht/preview_intern.gnuplot
+echo "temporäres Backup zurückkopieren"
+cp /tmp/backupG/*.csv ~/.local/share/Gewicht
+cp /tmp/backupG/*.gnuplot ~/.local/share/Gewicht
+cp /tmp/backupG/*.png ~/.local/share/Gewicht
 echo "main.zip löschen"
 [ -e main.zip ] && rm main.zip
 echo "Ein Backup der alten CSV befindet sich im Benutzerordner"
