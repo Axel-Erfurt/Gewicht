@@ -1,4 +1,6 @@
 #!/bin/sh
+echo "Backup anlegen"
+[ -e ~/.local/share/Gewicht/Gewicht.csv ] && cp ~/.local/share/Gewicht/Gewicht.csv ~/Gewicht.csv_Backup
 echo "alte csv und preview kopieren"
 [ -e ~/.local/share/Gewicht/Gewicht.csv ] && cp ~/.local/share/Gewicht/Gewicht.csv /tmp/Gewicht.csv
 [-e ~/.local/share/Gewicht/preview_extern.gnuplot] && cp ~/.local/share/Gewicht/preview_extern.gnuplot /tmp/preview_extern.gnuplot
@@ -24,3 +26,4 @@ echo "alte csv und preview zurückkopieren"
 [ -e /tmp/preview_extern.gnuplot ] && mv /tmp/Gewicht_preview_intern.gnuplot ~/.local/share/Gewicht/preview_intern.gnuplot
 echo "main.zip löschen"
 [ -e main.zip ] && rm main.zip
+echo "Ein Backup der alten CSV befindet sich im Benutzerordner"
