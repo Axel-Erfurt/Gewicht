@@ -1,5 +1,6 @@
 #!/bin/sh
 cd ~/Downloads
+rm ./main.zip
 echo "herunterladen ..."
 wget https://github.com/Axel-Erfurt/Gewicht/archive/main.zip
 echo "entpacken ..."
