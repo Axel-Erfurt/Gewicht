@@ -63,7 +63,9 @@ Das Ende sollte **_nach_** dem Start liegen!
 
 In das Feld klicken und Ziffern eingeben
 
-Bei Tagen (erste 2 Ziffern) unter 10 eine 0 voranstellen, z.B 04
+Bei Tagen (erste 2 Ziffern vor dem ersten Punkt) und Monaten (erste 2 Ziffern nach dem ersten Punkt):
+
+ist der Wert *_unter 10_*:  eine 0 voranstellen, z.B 04.02.18 für 4.2.2018
 
 Springt automtisch weiter zu Monat und Jahr. Auch ein Weiterspringen mit TAB ist möglich.
 
