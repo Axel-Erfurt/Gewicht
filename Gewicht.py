@@ -94,8 +94,7 @@ class MainWindow(QMainWindow):
             sd = self.tableview.item(0, 0).text()
             ed = self.tableview.item(self.tableview.rowCount() - 1, 0).text()
             self.date_edit_end.setDate(QDate.fromString(ed, "dddd, dd.MMMM yyyy")) 
-            self.date_edit_start.setDate(QDate.fromString(sd, "dddd, dd.MMMM yyyy"))     
-            #self.canGnuplot = True      
+            self.date_edit_start.setDate(QDate.fromString(sd, "dddd, dd.MMMM yyyy"))           
             
     def editStartDate(self):
         self.canGnuplot = False
@@ -104,8 +103,6 @@ class MainWindow(QMainWindow):
         self.start_date = sqldate
         self.updateTable()
         self.canGnuplot = True
-        #self.updateImage()
-
         
     def editEndDate(self):
         self.canGnuplot = False
@@ -115,7 +112,6 @@ class MainWindow(QMainWindow):
         print("Start Tag:", self.start_date, "End Tag:", self.end_date)
         self.updateTable()
         self.canGnuplot = True
-        #self.updateImage()
         
     def isModified(self):
         self.canGnuplot = False
@@ -241,7 +237,6 @@ class MainWindow(QMainWindow):
             self.btnChart.setIcon(QIcon("plot_icon"))
         
     def callGnuplot(self):
-        #self.imgLabel.hide()
         if self.tableview.rowCount() > 0 and self.canGnuplot == True:
             liste = []
             for row in range(self.tableview.rowCount()):
@@ -251,8 +246,8 @@ class MainWindow(QMainWindow):
                     tag = self.tableview.item(row, 3).text()
                     gew = self.tableview.item(row, 1).text()
                     liste.append(f"{tag}\t{gew}")
-                else:
-                    self.tableview.hideRow(row)
+                #else:
+                    #self.tableview.hideRow(row)
             temp_file = 'zeitraum.csv'
             gnuplot_file = 'preview_intern.gnuplot'
             with open(temp_file , 'w') as f:
@@ -285,8 +280,8 @@ class MainWindow(QMainWindow):
                     tag = self.tableview.item(row, 3).text()
                     gew = self.tableview.item(row, 1).text()
                     liste.append(f"{tag}\t{gew}")
-                else:
-                    self.tableview.hideRow(row)
+                #else:
+                    #self.tableview.hideRow(row)
             temp_file = 'zeitraum.csv'
             gnuplot_file = 'preview_extern.gnuplot'
             with open(temp_file , 'w') as f:
@@ -304,6 +299,7 @@ class MainWindow(QMainWindow):
             else:
                 self.tableview.hideRow(row)
         self.tableview.selectRow(0)
+        self.canGnuplot = True
         self.callGnuplot()
 
     def openFolder(self):
@@ -311,7 +307,6 @@ class MainWindow(QMainWindow):
         QDesktopServices.openUrl(QUrl.fromLocalFile(myfolder))
 
     def createStatusBar(self):
-        #self.statusBar().showMessage("Willkommen", 0)
         self.statusBar().addWidget(self.imgLabel)
 
     def loadCsvOnOpen(self):
