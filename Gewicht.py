@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 #########################################################
 import csv
-from PyQt5.QtCore import (QFile, QSize, Qt, QUrl, QDate)
+from PyQt5.QtCore import (QFile, QSize, Qt, QUrl, QDate, QDir, QSettings)
 from PyQt5.QtGui import QIcon, QFont, QImage, QPixmap, QDesktopServices
-from PyQt5.QtWidgets import (QAction, QApplication, QMainWindow, QLineEdit, QFileDialog, 
+from PyQt5.QtWidgets import (QAction, QApplication, QMainWindow, QLineEdit, QFileDialog, QAbstractItemView, 
         QTableWidget, QTableWidgetItem, QLabel, QInputDialog, QDateEdit, QDateTimeEdit, QComboBox)
 from os import path
 from subprocess import Popen, run
@@ -13,8 +13,6 @@ from subprocess import Popen, run
 class PyDateEdit(QDateEdit):
     def __init__(self, *args):
         super(PyDateEdit, self).__init__(*args)
-        self.setDisplayFormat("dddd, dd.MMMM yyyy")
-        self.setDate(QDate.currentDate())
         self.setCalendarPopup(False)
         self.setDisplayFormat("dd.MM.yy")
         self.setStyleSheet(stylesheet(self))
@@ -40,7 +38,11 @@ class MainWindow(QMainWindow):
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.myfile = 'Gewicht.csv'
         self.isChanged = False
-
+        
+        self.settings = QSettings("Gewicht", "gewicht")
+        self.setMinimumWidth(500)
+        self.setMinimumHeight(550)
+        self.setContentsMargins(10, 2, 10, 2)
         self.setStyleSheet(stylesheet(self))
         self.list = []
         self.date = ""
@@ -51,12 +53,13 @@ class MainWindow(QMainWindow):
         self.canGnuplot = False
         
         self.imgLabel = QLabel()
+        self.imgLabel.setScaledContents(True)
         self.createStatusBar()
         self.statusBar().hide()
 
         self.tableview = QTableWidget()
         self.tableview.setColumnCount(3)
-        self.tableview.cellChanged.connect(self.isModified)
+        self.tableview.cellDoubleClicked.connect(self.beginTableEditing)
         self.setHeaders()
         self.tableview.verticalHeader().setVisible(False)
         self.tableview.horizontalHeader().setVisible(False)
@@ -69,17 +72,22 @@ class MainWindow(QMainWindow):
         self.end_date = QDate.currentDate().toString("yyyyMMdd")
         
         self.date_edit_start = PyDateEdit()
+        self.date_edit_start.setContextMenuPolicy(Qt.PreventContextMenu)
+        self.date_edit_start.setButtonSymbols(2)
         self.date_edit_start.setToolTip("Startdatum")
         self.date_edit_start.setFixedWidth(200)
-        self.date_edit_start.dateChanged.connect(self.editStartDate)
+        self.date_edit_start.editingFinished.connect(self.editDate)
         
         self.date_edit_end = PyDateEdit()
-        self.date_edit_end.setToolTip("Startdatum")
+        self.date_edit_end.setContextMenuPolicy(Qt.PreventContextMenu)
+        self.date_edit_end.setButtonSymbols(2)
+        self.date_edit_end.setToolTip("Enddatum")
         self.date_edit_end.setFixedWidth(200)
-        self.date_edit_end.dateChanged.connect(self.editEndDate)
+        self.date_edit_end.editingFinished.connect(self.editDate)
 
         self.createToolBars()
         self.show()
+        
         if QFile.exists(self.myfile):
             print("file exists")
             self.loadCsvOnOpen()
@@ -89,33 +97,36 @@ class MainWindow(QMainWindow):
             self.addRow("")
 
     def setDatesFromTable(self):
+        #print("def DatesFrom Table")
         self.canGnuplot = False
         if self.tableview.rowCount() > 0:
             sd = self.tableview.item(0, 0).text()
             ed = self.tableview.item(self.tableview.rowCount() - 1, 0).text()
             self.date_edit_end.setDate(QDate.fromString(ed, "dddd, dd.MMMM yyyy")) 
-            self.date_edit_start.setDate(QDate.fromString(sd, "dddd, dd.MMMM yyyy"))           
-            
-    def editStartDate(self):
-        self.canGnuplot = False
-        self.end_date = self.date_edit_end.date().toString("yyyyMMdd")
-        sqldate = self.date_edit_start.date().toString("yyyyMMdd")
-        self.start_date = sqldate
-        self.updateTable()
-        self.canGnuplot = True
+            self.date_edit_start.setDate(QDate.fromString(sd, "dddd, dd.MMMM yyyy"))
+            sqldate_start = self.date_edit_start.date().toString("yyyyMMdd")
+            self.end_date = self.date_edit_end.date().toString("yyyyMMdd")
+            self.canGnuplot = True
+            self.callGnuplot()
         
-    def editEndDate(self):
+    def editDate(self):
+        print("def editDate")
         self.canGnuplot = False
         self.start_date = self.date_edit_start.date().toString("yyyyMMdd")
-        sqldate = self.date_edit_end.date().toString("yyyyMMdd")
-        self.end_date = sqldate
+        self.end_date = self.date_edit_end.date().toString("yyyyMMdd")
+        sqldate_start = self.date_edit_start.date().toString("yyyyMMdd")
+        self.start_date = sqldate_start
+        sqldate_end = self.date_edit_end.date().toString("yyyyMMdd")
+        self.end_date = sqldate_end
         print("Start Tag:", self.start_date, "End Tag:", self.end_date)
         self.updateTable()
-        self.canGnuplot = True
         
-    def isModified(self):
+    def beginTableEditing(self):       
+        print("begin editing")
         self.canGnuplot = False
-        self.isChanged = True
+        
+    def tableEditFinished(self):
+        return
 
     def setHeaders(self):
         self.tableview.horizontalHeader().setVisible(True)
@@ -140,6 +151,8 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         if self.isChanged == True and self.is_imported == False:
             self.writeCSV()
+        self.settings.setValue("geo", self.geometry())
+        self.settings.setValue("chartStatus", self.btnChart.text())
         event.accept()
 
     def createToolBars(self):
@@ -210,20 +223,23 @@ class MainWindow(QMainWindow):
     def toggleYear(self):
         if self.tableview.rowCount() > 0 and self.btnYears.currentIndex() > 0:
             if self.btnYears.currentIndex() == self.btnYears.count() - 1:
-                print("alle")
+                print("alles anzeigen")
                 for row in range(self.tableview.rowCount() - 1):
                     self.tableview.showRow(row)
                 self.setDatesFromTable()
                 self.callGnuplot()
+                self.selectLastRow()
+                self.tableview.scrollToBottom()
             else:
                 ed = f'{self.btnYears.currentText()}1231'
                 sd = f'{self.btnYears.currentText()}0101'
                 self.canGnuplot = False
                 self.date_edit_start.setDate(QDate.fromString(sd, "yyyyMMdd"))
                 self.date_edit_end.setDate(QDate.fromString(ed, "yyyyMMdd"))
+                self.editDate()
                 self.canGnuplot = True
                 self.callGnuplot()
-            self.tableview.scrollToTop()
+                self.selectLastRow()
   
     def toggleChart(self):
         if self.btnChart.text() == "Diagramm anzeigen":
@@ -298,10 +314,17 @@ class MainWindow(QMainWindow):
                 self.tableview.showRow(row)
             else:
                 self.tableview.hideRow(row)
-        self.tableview.selectRow(0)
+        self.selectLastRow()       
         self.canGnuplot = True
         self.callGnuplot()
-
+        
+    def selectLastRow(self):
+        last = self.tableview.rowCount() - 1
+        self.tableview.selectRow(last) 
+        last_item = self.tableview.item(self.tableview.rowCount() - 1, 0) 
+        last_item.setSelected(True)
+        self.tableview.scrollToBottom()
+        
     def openFolder(self):
         myfolder = path.dirname(sys.argv[0])
         QDesktopServices.openUrl(QUrl.fromLocalFile(myfolder))
@@ -331,8 +354,7 @@ class MainWindow(QMainWindow):
             self.tableview.horizontalHeader().setStretchLastSection(True)
             self.setHeaders()
             self.tableview.resizeRowsToContents()
-            last = self.tableview.rowCount() - 1
-            self.tableview.selectRow(last)
+            self.selectLastRow()
             self.isChanged = False
             ### Combobox füllen
             yearList = []
@@ -398,8 +420,7 @@ class MainWindow(QMainWindow):
             self.tableview.setItem(row,column, newItem)
             
             self.isChanged = True
-            last = self.tableview.rowCount() - 1
-            self.tableview.selectRow(last)
+            self.selectLastRow()
         else:
             self.tableview.setColumnCount(4)
             self.tableview.hideColumn(3)
@@ -471,8 +492,7 @@ class MainWindow(QMainWindow):
             self.tableview.horizontalHeader().setStretchLastSection(True)
             self.setHeaders()
             self.tableview.resizeRowsToContents()
-            last = self.tableview.rowCount() - 1
-            self.tableview.selectRow(last)
+            self.selectLastRow()
             self.isChanged = False
             self.is_imported = True
             self.setDatesFromTable()
@@ -484,7 +504,6 @@ class MainWindow(QMainWindow):
             self.btnYears.addItem("Jahre")
             self.btnYears.addItems(mylist)
             self.btnYears.addItem("alles")
-            #self.setDatesFromTable()
                 
 def stylesheet(self):
         return """
@@ -502,10 +521,11 @@ def stylesheet(self):
         QToolBar
         {
             background: #e9e9e9;
+            border: 0px;
         }
         QDateEdit
         {
-            font-size: 8pt;
+            font-size: 9pt;
         }
     """
 
@@ -516,5 +536,19 @@ if __name__ == '__main__':
     geo = app.desktop().screenGeometry()
     print(geo)
     mainWin = MainWindow()
-    mainWin.setGeometry(0, 0, 900, geo.height() - 60)
+    if mainWin.settings.contains("geo"):
+        mainWin.setGeometry(mainWin.settings.value("geo"))
+    else:
+        mainWin.setGeometry(0, 0, 900, geo.height() - 60)
+    if mainWin.settings.contains("chartStatus"):
+        if mainWin.settings.value("chartStatus") == "Diagramm ausblenden":
+            mainWin.statusBar().show()
+            mainWin.btnChart.setText("Diagramm ausblenden")
+            mainWin.btnChart.setIcon(QIcon("plot_icon_dis"))
+            mainWin.updateImage()
+        else:
+            mainWin.btnChart.setText("Diagramm anzeigen")
+            mainWin.statusBar().hide()
+            mainWin.btnChart.setIcon(QIcon("plot_icon"))            
+            
     sys.exit(app.exec_())
