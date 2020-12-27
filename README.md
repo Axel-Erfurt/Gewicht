@@ -79,4 +79,10 @@ Das zweite Plot Icon schaltet das interne Diagramm ein/aus.
 
 Das Aussehen der Diagramme kann in den Dateien preview_intern.gnuplot und preview_extern.gnuplot angepasst werden.
 
+- Beispiel für externes Diagramm in preview_extern.gnuplot
+
+Die gnuplot Fenstergröße wird mit *_terminal wxt size_* bestimmt
+
+```set terminal wxt size 900,500```
+
 siehe [Linetypes, colors, and styles](http://www.bersch.net/gnuplot-doc/linetypes,-colors,-and-styles.html)
