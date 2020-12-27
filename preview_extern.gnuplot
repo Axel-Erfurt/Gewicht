@@ -10,8 +10,9 @@ set style line 1 \
     pointtype 7 pointsize 1.5
 set samples 100
 set tics font "Helvetica,8"
+set terminal wxt size 900,500
 plot "zeitraum.csv" index 0 u 1:2 w linespoints linestyle 1 notitle
 set style line 5 lt rgb "#33ff33" lw 3 pt 6
-set term pngcairo size 1200,500
+set term pngcairo size 1200,800
 set output "messung.png"
 replot
