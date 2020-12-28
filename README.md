@@ -36,6 +36,10 @@ Die Tabelle ist eine Textdatei (tab als Trenner) mit folgendem Format:
 
 ```Samstag, 19.Dezember 2020	103.7		20201219```
 
+Mit **_pondus2csv.py_** kann eine **_user_data.xml_** von Pondus in eine csv Datei umgewandelt werden.
+
+Dazu **_pondus2csv.py_** im dem Verzeichnis ausführen in dem sich **_user_data.xml_** befindet.
+
 
 #### Toolbar 1
 
