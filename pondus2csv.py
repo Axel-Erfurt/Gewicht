@@ -42,11 +42,15 @@ for lines in pondusliste:
     line = lines.split("\t")
     datum = datetime.strptime(line[0], "%A, %d.%B %Y")
     gewicht = line[1]
+    gewicht = str(float(gewicht) - 20.0)
     d = datum.strftime("%A, %d.%B %Y")
     sqldatum = datum.strftime("%Y%m%d")
     entry = f"{d}\t{gewicht}\t\t{sqldatum}"
     if not entry in liste:
         liste.append(entry)
+        
+slist=sorted(liste,key = lambda x:x[-8])
 
 with open("PondusImport.csv", "w") as f:
-    f.write('\n'.join(liste))
+    f.write('\n'.join(slist))
+    
