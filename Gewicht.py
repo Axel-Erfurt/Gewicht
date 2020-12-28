@@ -190,7 +190,16 @@ class MainWindow(QMainWindow):
                 triggered=self.exportCSV)
         self.exportAct.setIconText("Export")
         self.tb.addAction(self.exportAct)
+        self.tb.addSeparator()
+
+        ### Export Zeitraum
+        self.manualAct = QAction(QIcon.fromTheme('browser'), "", self,
+                toolTip="Manual",
+                triggered=self.showManual)
+        self.manualAct.setIconText("Manual")
+        self.tb.addAction(self.manualAct)        
         
+        ### Toolbar 2
         self.addToolBarBreak(Qt.TopToolBarArea)      
         self.tbd = self.addToolBar("Date")
         self.tbd.setMovable(False)
@@ -218,7 +227,11 @@ class MainWindow(QMainWindow):
         self.btnYears = QComboBox()
         self.btnYears.setFixedWidth(80)
         self.btnYears.currentIndexChanged.connect(self.toggleYear)
-        self.tbd.addWidget(self.btnYears)          
+        self.tbd.addWidget(self.btnYears)
+       
+    def showManual(self):
+        manual = "manual.html"
+        QDesktopServices.openUrl(QUrl(manual))
 
     def toggleYear(self):
         if self.tableview.rowCount() > 0 and self.btnYears.currentIndex() > 0:
