@@ -27,6 +27,16 @@ Gewichtskontrolle für Linux
 
 ### Bedienung
 
+Die im Programm enthaltene Datei Gewicht.csv dient nur zur Veranschaulichung der Funktionsweise.
+
+Sie kann gelöscht werden um eine neue Tabelle zu beginnen oder durch Import und anschließendem Speichern als Gewicht.csv ersetzt werden.
+
+Die Tabelle ist eine Textdatei (tab als Trenner) mit folgendem Format:
+
+
+```Samstag, 19.Dezember 2020	103.7		20201219```
+
+
 #### Toolbar 1
 
 - neuer Eintrag
