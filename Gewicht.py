@@ -369,6 +369,11 @@ class MainWindow(QMainWindow):
             self.tableview.resizeRowsToContents()
             self.selectLastRow()
             self.isChanged = False
+            self.fillCombo()
+            
+    def fillCombo(self):
+        ### Combobox leeren
+            self.btnYears.clear()
             ### Combobox füllen
             yearList = []
             for row in range(self.tableview.rowCount() - 1):
@@ -509,14 +514,7 @@ class MainWindow(QMainWindow):
             self.isChanged = False
             self.is_imported = True
             self.setDatesFromTable()
-            ### Combobox füllen
-            yearList = []
-            for row in range(self.tableview.rowCount() - 1):
-                yearList.append(self.tableview.item(row, 3).text()[:4])
-            mylist = sorted(list(set(yearList)))
-            self.btnYears.addItem("Jahre")
-            self.btnYears.addItems(mylist)
-            self.btnYears.addItem("alles")
+            self.fillCombo()
                 
 def stylesheet(self):
         return """
