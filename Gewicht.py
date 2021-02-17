@@ -124,6 +124,7 @@ class MainWindow(QMainWindow):
     def beginTableEditing(self):       
         print("begin editing")
         self.canGnuplot = False
+        self.isChanged = True
         
     def tableEditFinished(self):
         return
