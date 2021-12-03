@@ -42,7 +42,7 @@ for lines in pondusliste:
     line = lines.split("\t")
     datum = datetime.strptime(line[0], "%A, %d.%B %Y")
     gewicht = line[1]
-    gewicht = str(float(gewicht) - 20.0)
+    gewicht = str(float(gewicht))
     d = datum.strftime("%A, %d.%B %Y")
     sqldatum = datum.strftime("%Y%m%d")
     entry = f"{d}\t{gewicht}\t\t{sqldatum}"
